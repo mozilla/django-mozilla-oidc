@@ -90,6 +90,7 @@ class SessionRefreshTokenMiddlewareTestCase(TestCase):
     @override_settings(OIDC_OP_AUTHORIZATION_ENDPOINT='http://example.com/authorize')
     @override_settings(OIDC_RP_CLIENT_ID='foo')
     @override_settings(OIDC_RENEW_ID_TOKEN_EXPIRY_SECONDS=120)
+    @override_settings(OIDC_AUTH_REQUEST_EXTRA_PARAMS={'custom_parameter': 'custom_value'})
     @patch('mozilla_django_oidc.middleware.get_random_string')
     def test_no_oidc_token_expiration_forces_renewal(self, mock_random_string):
         mock_random_string.return_value = 'examplestring'
@@ -111,6 +112,7 @@ class SessionRefreshTokenMiddlewareTestCase(TestCase):
             'prompt': ['none'],
             'scope': ['openid email'],
             'state': ['examplestring'],
+            'custom_parameter': ['custom_value'],
         }
         self.assertEqual(expected_query, parse_qs(qs))
 

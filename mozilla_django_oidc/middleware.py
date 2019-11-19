@@ -118,6 +118,8 @@ class SessionRefresh(MiddlewareMixin):
             })
             request.session['oidc_nonce'] = nonce
 
+        params.update(self.get_settings('OIDC_AUTH_REQUEST_EXTRA_PARAMS', {}))
+
         request.session['oidc_state'] = state
         request.session['oidc_login_next'] = request.get_full_path()
 
