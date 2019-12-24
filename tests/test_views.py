@@ -4,12 +4,12 @@ except ImportError:
     # Python < 3
     from urlparse import parse_qs, urlparse
 
-from mock import patch
-
 import django
-from django.core.exceptions import SuspiciousOperation
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
+from django.core.exceptions import SuspiciousOperation
+from mock import patch
+
 try:
     from django.urls import reverse
 except ImportError:
@@ -18,7 +18,6 @@ except ImportError:
 from django.test import RequestFactory, TestCase, override_settings
 
 from mozilla_django_oidc import views
-
 
 User = get_user_model()
 
@@ -499,6 +498,26 @@ class OIDCAuthorizationRequestViewTestCase(TestCase):
         login_view(request)
         self.assertTrue('oidc_login_next' in request.session)
         self.assertTrue(request.session['oidc_login_next'] is None)
+
+    @override_settings(OIDC_REQ_METADATA=True)
+    @override_settings(OIDC_OP_METADATA_ENDPOINT='metadata_endpoint')
+    @override_settings(OIDC_RP_CLIENT_ID="client_id")
+    @patch('mozilla_django_oidc.views.get_from_op_metadata')
+    def test_get_with_metadata_endpoint(self, get_from_op_metadata_patch):
+        """Test that endpoint from metadata is extracted successfully"""
+
+        def side_effect(attr):
+            if attr == 'OIDC_OP_AUTHORIZATION_ENDPOINT':
+                return 'auth_endpoint'
+
+        get_from_op_metadata_patch.side_effect = side_effect
+        request = self.factory.get(reverse('oidc_authentication_init'))
+        request.session = dict()
+        login_view = views.OIDCAuthenticationRequestView.as_view()
+        response = login_view(request)
+        o = urlparse(response.url)
+
+        self.assertEqual(o.path, 'auth_endpoint')
 
 
 class OIDCLogoutViewTestCase(TestCase):

@@ -1,4 +1,5 @@
 import time
+
 try:
     from urllib.parse import urlencode
 except ImportError:
@@ -6,6 +7,7 @@ except ImportError:
     from urllib import urlencode
 
 from django.core.exceptions import SuspiciousOperation
+
 try:
     from django.urls import reverse
 except ImportError:
@@ -21,8 +23,8 @@ from django.views.generic import View
 from mozilla_django_oidc.utils import (
     absolutify,
     import_from_settings,
-    is_authenticated
-)
+    is_authenticated,
+    is_obtainable_from_op_metadata, get_from_op_metadata)
 
 
 class OIDCAuthenticationCallbackView(View):
@@ -138,6 +140,12 @@ class OIDCAuthenticationRequestView(View):
 
     @staticmethod
     def get_settings(attr, *args):
+        # If the requested setting can be extracted from the OpenID provider's metadata
+        # and the use of it is allowed.
+        if is_obtainable_from_op_metadata(attr) and \
+                import_from_settings("OIDC_REQ_METADATA", False):
+            return get_from_op_metadata(attr)
+
         return import_from_settings(attr, *args)
 
     def get(self, request):

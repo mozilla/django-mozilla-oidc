@@ -2,12 +2,13 @@ import base64
 import hashlib
 import json
 import logging
-import requests
-from requests.auth import HTTPBasicAuth
 
+import requests
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
 from django.core.exceptions import SuspiciousOperation, ImproperlyConfigured
+from requests.auth import HTTPBasicAuth
+
 try:
     from django.urls import reverse
 except ImportError:
@@ -21,8 +22,8 @@ from josepy.b64 import b64decode
 from josepy.jwk import JWK
 from josepy.jws import JWS, Header
 
-from mozilla_django_oidc.utils import absolutify, import_from_settings
-
+from mozilla_django_oidc.utils import absolutify, import_from_settings, get_from_op_metadata, \
+    is_obtainable_from_op_metadata
 
 LOGGER = logging.getLogger(__name__)
 
@@ -68,6 +69,12 @@ class OIDCAuthenticationBackend(ModelBackend):
 
     @staticmethod
     def get_settings(attr, *args):
+        # If the requested setting can be extracted from the OpenID provider's metadata
+        # and the use of it is allowed.
+        if is_obtainable_from_op_metadata(attr) and \
+                import_from_settings("OIDC_REQ_METADATA", False):
+            return get_from_op_metadata(attr)
+
         return import_from_settings(attr, *args)
 
     def filter_users_by_claims(self, claims):
